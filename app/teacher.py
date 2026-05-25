@@ -100,6 +100,8 @@ async def answer_question(
     lesson_content: str,
     history: list[dict],
     question: str,
+    *,
+    explore: bool = False,
 ) -> str:
     if not is_configured():
         return (
@@ -112,12 +114,22 @@ async def answer_question(
     if not client:
         return ""
 
-    system = (
-        f"You are {teacher_name}, teaching {interest}. "
-        f"Today's lesson was: {lesson_title}.\n\n{lesson_content}\n\n"
-        "Answer the student's question clearly and concisely. "
-        "If off-topic, gently redirect to today's lesson."
-    )
+    if explore:
+        system = (
+            f"You are {teacher_name}, teaching {interest}. "
+            f"The student is reviewing the lesson “{lesson_title}” but wants to explore "
+            "a different topic or a broader question.\n\n"
+            f"Lesson context (for reference only):\n{lesson_content}\n\n"
+            "Answer their question fully and clearly. Teach mini-lessons when they ask "
+            "about new concepts. Do not refuse off-topic questions."
+        )
+    else:
+        system = (
+            f"You are {teacher_name}, teaching {interest}. "
+            f"Today's lesson was: {lesson_title}.\n\n{lesson_content}\n\n"
+            "Answer the student's question clearly and concisely. "
+            "If off-topic, gently redirect to today's lesson."
+        )
 
     contents: list[types.Content] = []
     for msg in history:

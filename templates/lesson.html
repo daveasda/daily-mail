@@ -4,8 +4,11 @@
 
 {% block content %}
 <section class="lesson-page">
-  <a href="/" class="back">← Today's desk</a>
-  <p class="eyebrow">{{ lesson.lesson_date }}</p>
+  <a href="/" class="back">← Home</a>
+  <a href="/topics" class="back secondary-back">Topic library</a>
+  <p class="eyebrow">
+    {% if is_study %}Extra study{% else %}{{ lesson.lesson_date }}{% endif %}
+  </p>
   <h1>{{ lesson.title }}</h1>
 
   <article class="card prose">
@@ -14,6 +17,28 @@
 
   <section id="chat" class="card chat">
     <h2>Ask {{ profile.teacher_name }}</h2>
+
+    <div class="chat-modes">
+      <details class="chat-mode" open>
+        <summary>About this lesson</summary>
+        <form method="post" action="/lesson/{{ lesson.id }}/ask" class="form chat-form">
+          <input type="hidden" name="scope" value="lesson" />
+          <textarea name="question" rows="2" placeholder="e.g. Can you explain that example again?" required></textarea>
+          <button type="submit" class="btn primary">Send</button>
+        </form>
+      </details>
+
+      <details class="chat-mode">
+        <summary>About a different topic</summary>
+        <p class="muted">Ask anything in {{ profile.interests | join(', ') }} — not limited to today's lesson.</p>
+        <form method="post" action="/lesson/{{ lesson.id }}/ask" class="form chat-form">
+          <input type="hidden" name="scope" value="explore" />
+          <textarea name="question" rows="2" placeholder="e.g. How do bonds compare to debentures?" required></textarea>
+          <button type="submit" class="btn primary">Ask</button>
+        </form>
+      </details>
+    </div>
+
     <div class="messages">
       {% for m in messages %}
       <div class="message {{ m.role }}">
@@ -21,14 +46,9 @@
         <div class="bubble">{{ m.content | markdown | safe }}</div>
       </div>
       {% else %}
-      <p class="muted">No questions yet — what confused you, or what do you want to go deeper on?</p>
+      <p class="muted">No questions yet.</p>
       {% endfor %}
     </div>
-    <form method="post" action="/lesson/{{ lesson.id }}/ask" class="form chat-form">
-      <label class="sr-only" for="question">Your question</label>
-      <textarea id="question" name="question" rows="2" placeholder="e.g. How is a debenture different from a regular bond?" required></textarea>
-      <button type="submit" class="btn primary">Send</button>
-    </form>
   </section>
 </section>
 {% endblock %}

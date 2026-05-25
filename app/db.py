@@ -145,7 +145,7 @@ async def get_lesson_for_date(day: date) -> dict | None:
 
 
 async def create_lesson(
-    topic_id: int, day: date, title: str, content: str
+    topic_id: int, lesson_date: str, title: str, content: str
 ) -> int:
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
@@ -153,25 +153,114 @@ async def create_lesson(
             INSERT INTO lesson (topic_id, lesson_date, title, content, created_at)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (topic_id, day.isoformat(), title, content, _now()),
+            (topic_id, lesson_date, title, content, _now()),
         )
         await db.commit()
         return cur.lastrowid or 0
 
 
-async def list_past_lessons(limit: int = 14) -> list[dict]:
+def _study_lesson_date(topic_id: int) -> str:
+    return f"study-{topic_id}"
+
+
+async def get_topic(topic_id: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM curriculum_topic WHERE id = ?", (topic_id,)
+        ) as cur:
+            row = await cur.fetchone()
+    return dict(row) if row else None
+
+
+async def get_lesson_for_topic(topic_id: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM lesson WHERE lesson_date = ?",
+            (_study_lesson_date(topic_id),),
+        ) as cur:
+            row = await cur.fetchone()
+    if row:
+        return dict(row)
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
             """
-            SELECT id, lesson_date, title FROM lesson
-            ORDER BY lesson_date DESC
+            SELECT l.* FROM lesson l
+            JOIN curriculum_topic t ON l.topic_id = t.id
+            WHERE l.topic_id = ? AND l.lesson_date NOT LIKE 'study-%'
+            ORDER BY l.created_at DESC
+            LIMIT 1
+            """,
+            (topic_id,),
+        ) as cur:
+            row = await cur.fetchone()
+    return dict(row) if row else None
+
+
+async def add_custom_topic(interest: str, title: str) -> int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT COALESCE(MAX(sort_order), 0) FROM curriculum_topic WHERE interest = ?",
+            (interest,),
+        ) as cur:
+            row = await cur.fetchone()
+        order = (row[0] if row else 0) + 1
+        cur = await db.execute(
+            """
+            INSERT INTO curriculum_topic (interest, title, sort_order, status)
+            VALUES (?, ?, ?, 'planned')
+            """,
+            (interest, title, order),
+        )
+        await db.commit()
+        return cur.lastrowid or 0
+
+
+async def list_curriculum_topics(interest: str) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """
+            SELECT id, title, status, sort_order, taught_on
+            FROM curriculum_topic
+            WHERE interest = ?
+            ORDER BY sort_order ASC
+            """,
+            (interest,),
+        ) as cur:
+            rows = await cur.fetchall()
+    out: list[dict] = []
+    for row in rows:
+        d = dict(row)
+        lesson = await get_lesson_for_topic(d["id"])
+        d["lesson_id"] = lesson["id"] if lesson else None
+        out.append(d)
+    return out
+
+
+async def list_past_lessons(limit: int = 30) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """
+            SELECT id, lesson_date, title, created_at FROM lesson
+            ORDER BY created_at DESC
             LIMIT ?
             """,
             (limit,),
         ) as cur:
             rows = await cur.fetchall()
-    return [dict(r) for r in rows]
+    result = []
+    for r in rows:
+        d = dict(r)
+        if d["lesson_date"].startswith("study-"):
+            d["label"] = "Extra study"
+        else:
+            d["label"] = d["lesson_date"]
+        result.append(d)
+    return result
 
 
 async def get_lesson(lesson_id: int) -> dict | None:

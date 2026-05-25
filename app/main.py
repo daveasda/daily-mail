@@ -54,6 +54,34 @@ async def onboard(
     return RedirectResponse("/", status_code=303)
 
 
+@app.get("/topics", response_class=HTMLResponse)
+async def topics_page(request: Request):
+    ctx = await services.topics_context()
+    if not ctx.get("has_profile"):
+        return RedirectResponse("/", status_code=303)
+    return TEMPLATES.TemplateResponse(
+        request, "topics.html", {"request": request, **ctx}
+    )
+
+
+@app.post("/topics/{topic_id}/study")
+async def study_topic(topic_id: int):
+    lesson = await services.get_or_create_topic_lesson(topic_id)
+    if not lesson:
+        raise HTTPException(404, "Topic not found")
+    return RedirectResponse(f"/lesson/{lesson['id']}", status_code=303)
+
+
+@app.post("/topics/new")
+async def new_topic(
+    title: str = Form(...),
+):
+    lesson = await services.study_custom_topic(title)
+    if not lesson:
+        raise HTTPException(400, "Complete onboarding first")
+    return RedirectResponse(f"/lesson/{lesson['id']}", status_code=303)
+
+
 @app.get("/lesson/{lesson_id}", response_class=HTMLResponse)
 async def lesson_page(request: Request, lesson_id: int):
     lesson = await db.get_lesson(lesson_id)
@@ -61,6 +89,7 @@ async def lesson_page(request: Request, lesson_id: int):
         raise HTTPException(404, "Lesson not found")
     profile = await db.get_profile()
     messages = await db.get_messages(lesson_id)
+    is_study = lesson["lesson_date"].startswith("study-")
     return TEMPLATES.TemplateResponse(
         request,
         "lesson.html",
@@ -70,6 +99,7 @@ async def lesson_page(request: Request, lesson_id: int):
             "profile": profile,
             "messages": messages,
             "api_configured": teacher_module.is_configured(),
+            "is_study": is_study,
         },
     )
 
@@ -78,6 +108,7 @@ async def lesson_page(request: Request, lesson_id: int):
 async def ask_teacher(
     lesson_id: int,
     question: str = Form(...),
+    scope: str = Form(default="lesson"),
 ):
     lesson = await db.get_lesson(lesson_id)
     if not lesson:
@@ -107,6 +138,7 @@ async def ask_teacher(
         lesson["content"],
         chat_history,
         q,
+        explore=(scope == "explore"),
     )
     await db.add_message(lesson_id, "teacher", answer)
     return RedirectResponse(f"/lesson/{lesson_id}#chat", status_code=303)

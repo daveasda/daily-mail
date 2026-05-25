@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}All topics — Daily Mail{% endblock %}
+
+{% block content %}
+<section class="topics-page">
+  <a href="/" class="back">← Home</a>
+  <h1>Topic library</h1>
+  <p class="muted">Go back to any topic — study one you skipped or ask about something new.</p>
+
+  <div class="card">
+    <h2>Learn something new now</h2>
+    <form method="post" action="/topics/new" class="form inline-form">
+      <label>
+        Topic title
+        <input type="text" name="title" placeholder="e.g. What are municipal bonds?" required />
+      </label>
+      <button type="submit" class="btn primary">Study this topic</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Your {{ interest }} curriculum</h2>
+    <ul class="topic-library">
+      {% for t in topics %}
+      <li class="topic-row {{ t.status }}">
+        <span class="topic-title">{{ t.title }}</span>
+        <span class="topic-status muted">{{ t.status }}</span>
+        <span class="topic-actions">
+          {% if t.lesson_id %}
+          <a href="/lesson/{{ t.lesson_id }}" class="btn">Review &amp; ask</a>
+          {% elif t.status == 'planned' %}
+          <form method="post" action="/topics/{{ t.id }}/study" class="inline">
+            <button type="submit" class="btn primary">Study now</button>
+          </form>
+          {% else %}
+          <form method="post" action="/topics/{{ t.id }}/study" class="inline">
+            <button type="submit" class="btn">Open again</button>
+          </form>
+          {% endif %}
+        </span>
+      </li>
+      {% else %}
+      <li class="muted">No topics yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

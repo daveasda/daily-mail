@@ -41,6 +41,7 @@ uvicorn app.main:app --reload
 
 1. **Onboarding** — you list interests; the teacher generates a ordered topic list per interest.
 2. **Daily lesson** — each calendar day, the next planned topic becomes today's lesson.
-3. **Q&A** — on the lesson page, ask the teacher anything in context of that day's material.
+3. **Q&A** — on the lesson page, ask about the lesson or explore a different topic.
+4. **Topic library** (`/topics`) — study any planned topic early, review past ones, or add a custom topic.
 
 Data is stored in `data/daily_mail.db` (gitignored).

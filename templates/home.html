@@ -65,6 +65,7 @@
         <li class="muted">Curriculum loading…</li>
         {% endfor %}
       </ol>
+      <p><a href="/topics" class="btn">Browse all topics →</a></p>
     </div>
 
     {% if history %}
@@ -72,7 +73,7 @@
       <h2>Past lessons</h2>
       <ul class="history">
         {% for h in history %}
-        <li><a href="/lesson/{{ h.id }}">{{ h.lesson_date }} — {{ h.title }}</a></li>
+        <li><a href="/lesson/{{ h.id }}">{{ h.label }} — {{ h.title }}</a></li>
         {% endfor %}
       </ul>
     </div>
