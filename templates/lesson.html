@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ lesson.title }} — Daily Mail{% endblock %}
+
+{% block content %}
+<section class="lesson-page">
+  <a href="/" class="back">← Today's desk</a>
+  <p class="eyebrow">{{ lesson.lesson_date }}</p>
+  <h1>{{ lesson.title }}</h1>
+
+  <article class="card prose">
+    {{ lesson.content | markdown | safe }}
+  </article>
+
+  <section id="chat" class="card chat">
+    <h2>Ask {{ profile.teacher_name }}</h2>
+    <div class="messages">
+      {% for m in messages %}
+      <div class="message {{ m.role }}">
+        <span class="label">{% if m.role == 'teacher' %}{{ profile.teacher_name }}{% else %}You{% endif %}</span>
+        <div class="bubble">{{ m.content | markdown | safe }}</div>
+      </div>
+      {% else %}
+      <p class="muted">No questions yet — what confused you, or what do you want to go deeper on?</p>
+      {% endfor %}
+    </div>
+    <form method="post" action="/lesson/{{ lesson.id }}/ask" class="form chat-form">
+      <label class="sr-only" for="question">Your question</label>
+      <textarea id="question" name="question" rows="2" placeholder="e.g. How is a debenture different from a regular bond?" required></textarea>
+      <button type="submit" class="btn primary">Send</button>
+    </form>
+  </section>
+</section>
+{% endblock %}

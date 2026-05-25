@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Mail — Learn something new every day{% endblock %}
+
+{% block content %}
+{% if not has_profile %}
+<section class="card hero">
+  <h1>Meet your daily teacher</h1>
+  <p>
+    Tell us what you're curious about. Your teacher plans the curriculum,
+    teaches one concept each day, and answers your questions — like debentures
+    today, bonds tomorrow.
+  </p>
+  <form method="post" action="/onboard" class="form">
+    <label>
+      Your interests (comma-separated)
+      <input
+        type="text"
+        name="interests"
+        placeholder="finance, psychology, history"
+        required
+      />
+    </label>
+    <label>
+      Teacher's name
+      <input type="text" name="teacher_name" value="Ms. Rivera" />
+    </label>
+    <button type="submit" class="btn primary">Start learning</button>
+  </form>
+</section>
+{% else %}
+<section class="grid">
+  <article class="card lesson-today">
+    <p class="eyebrow">Today's lesson · {{ interest }}</p>
+    {% if lesson %}
+    <h1>{{ lesson.title }}</h1>
+    <div class="lesson-body prose">
+      {{ lesson.content | markdown | safe }}
+    </div>
+    <a href="/lesson/{{ lesson.id }}" class="btn primary">Ask {{ profile.teacher_name }} a question</a>
+    {% else %}
+    <h1>No lesson yet</h1>
+    <p>Your teacher is preparing your curriculum. Refresh in a moment.</p>
+    {% endif %}
+  </article>
+
+  <aside class="sidebar">
+    <div class="card">
+      <h2>Your teacher</h2>
+      <p class="teacher-name">{{ profile.teacher_name }}</p>
+      <p class="muted">Interests: {{ profile.interests | join(", ") }}</p>
+      {% if not api_configured %}
+      <p class="notice">
+        Demo mode — add <code>GEMINI_API_KEY</code> to <code>.env</code> for AI-planned lessons and chat.
+      </p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Coming up</h2>
+      <ol class="topic-list">
+        {% for t in upcoming %}
+        <li class="{{ t.status }}">{{ t.title }}</li>
+        {% else %}
+        <li class="muted">Curriculum loading…</li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    {% if history %}
+    <div class="card">
+      <h2>Past lessons</h2>
+      <ul class="history">
+        {% for h in history %}
+        <li><a href="/lesson/{{ h.id }}">{{ h.lesson_date }} — {{ h.title }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </aside>
+</section>
+{% endif %}
+{% endblock %}
